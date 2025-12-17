@@ -2,7 +2,10 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "http://34.88.175.10:5002/$1",
+      "headers": {
+        "X-Proxy-Secret": "RjRiZItz+(g@SB+N9n4*/sobmDNT$w:e"
+      }
     },
     {
       "source": "/(.*)",
