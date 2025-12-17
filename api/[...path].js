@@ -59,6 +59,9 @@ export default async function handler(req, res) {
   targetUrl.pathname = forwardPath
   targetUrl.search = incomingUrl.search
 
+  // Helpful debug headers (visible in browser Network tab)
+  res.setHeader('x-proxy-target', targetUrl.toString())
+
   const bodyBuffer = await readRawBody(req)
 
   const headers = sanitizeHeaders(req.headers)
@@ -73,11 +76,14 @@ export default async function handler(req, res) {
       redirect: 'manual',
     })
   } catch (err) {
+    res.setHeader('x-proxy-error', 'fetch_failed')
     res.statusCode = 502
     res.setHeader('content-type', 'application/json; charset=utf-8')
     res.end(JSON.stringify({ error: 'Bad Gateway', details: String(err?.message || err) }))
     return
   }
+
+  res.setHeader('x-proxy-upstream-status', String(upstreamResponse.status))
 
   res.statusCode = upstreamResponse.status
   upstreamResponse.headers.forEach((value, key) => {
