@@ -1,82 +1,89 @@
-export const config = {
-  api: {
-    bodyParser: false, // we must stream uploads (multipart) through
-  },
-};
-
+/**
+ * Vercel Serverless Function proxy.
+ *
+ * Forwards any request from /api/* -> {BACKEND_ORIGIN}/*
+ * - Preserves method/query/body (including multipart/form-data uploads)
+ * - Injects X-Proxy-Secret from env var PROXY_SHARED_SECRET (if set)
+ *
+ * Configure on Vercel:
+ * - BACKEND_ORIGIN = http://34.88.175.10:5002   (or your backend)
+ * - PROXY_SHARED_SECRET = <shared secret expected by backend proxy check>
+ */
 export default async function handler(req, res) {
-  // Handle CORS preflight at the edge (prevents upstream 405 on OPTIONS).
-  if (req.method === "OPTIONS") {
-    const origin = req.headers.origin || "*";
-    res.statusCode = 200;
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      req.headers["access-control-request-headers"] || "content-type,x-admin-key"
-    );
-    res.end();
-    return;
-  }
+  const backendOrigin = (process.env.BACKEND_ORIGIN || '').trim() || 'http://34.88.175.10:5002'
+  const proxySecret = (process.env.PROXY_SHARED_SECRET || '').trim()
 
-  const vmIp = process.env.VM_IP;
-  const secret = process.env.PROXY_SHARED_SECRET;
+  // req.url includes the full path starting with /api/...
+  const incomingUrl = new URL(req.url, 'http://localhost')
+  const forwardPath = incomingUrl.pathname.replace(/^\/api(?=\/|$)/, '') || '/'
+  const targetUrl = new URL(backendOrigin)
+  targetUrl.pathname = forwardPath
+  targetUrl.search = incomingUrl.search
 
-  if (!vmIp || !secret) {
-    res.statusCode = 500;
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ error: "Proxy is not configured (missing VM_IP or PROXY_SHARED_SECRET)" }));
-    return;
-  }
+  const bodyBuffer = await readRawBody(req)
 
-  // Join path segments (Vercel gives [...path] as array)
-  const parts = req.query?.path;
-  const joined = Array.isArray(parts) ? parts.join("/") : (parts || "");
+  const headers = sanitizeHeaders(req.headers)
+  if (proxySecret) headers['x-proxy-secret'] = proxySecret
 
-  // Preserve query string (?a=b) from original request URL
-  const originalUrl = req.url || "";
-  const qsIdx = originalUrl.indexOf("?");
-  const qs = qsIdx >= 0 ? originalUrl.slice(qsIdx) : "";
-
-  const targetUrl = `http://${vmIp}:5002/${joined}${qs}`;
-
-  // Forward almost all headers, but enforce our secret and avoid host mismatches.
-  const headers = { ...req.headers };
-  delete headers.host;
-  delete headers["content-length"]; // let fetch compute it when possible
-  // Set in both canonical and lowercase forms (some runtimes normalize differently).
-  headers["X-Proxy-Secret"] = secret;
-  headers["x-proxy-secret"] = secret;
-
+  let upstreamResponse
   try {
-    const upstream = await fetch(targetUrl, {
+    upstreamResponse = await fetch(targetUrl.toString(), {
       method: req.method,
       headers,
-      // Stream the request body through (needed for multipart uploads)
-      body: req.method === "GET" || req.method === "HEAD" ? undefined : req,
-      // Node.js fetch requires duplex when streaming a request body
-      duplex: "half",
-    });
-
-    res.statusCode = upstream.status;
-    // Debug (safe): confirms the request went through Vercel proxy (does not leak secret).
-    res.setHeader("X-Proxy-Used", "1");
-
-    // Copy response headers (skip some hop-by-hop headers)
-    upstream.headers.forEach((value, key) => {
-      const k = key.toLowerCase();
-      if (k === "transfer-encoding" || k === "connection" || k === "content-encoding") return;
-      res.setHeader(key, value);
-    });
-
-    const buf = Buffer.from(await upstream.arrayBuffer());
-    res.end(buf);
-  } catch (e) {
-    res.statusCode = 502;
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ error: "Upstream request failed", detail: String(e) }));
+      body: shouldHaveBody(req.method) ? bodyBuffer : undefined,
+      redirect: 'manual',
+    })
+  } catch (err) {
+    res.statusCode = 502
+    res.setHeader('content-type', 'application/json; charset=utf-8')
+    res.end(JSON.stringify({ error: 'Bad Gateway', details: String(err?.message || err) }))
+    return
   }
+
+  res.statusCode = upstreamResponse.status
+  upstreamResponse.headers.forEach((value, key) => {
+    // Avoid setting hop-by-hop headers
+    if (key.toLowerCase() === 'transfer-encoding') return
+    res.setHeader(key, value)
+  })
+
+  const buf = Buffer.from(await upstreamResponse.arrayBuffer())
+  res.end(buf)
+}
+
+function shouldHaveBody(method) {
+  return !['GET', 'HEAD'].includes(String(method || '').toUpperCase())
+}
+
+function sanitizeHeaders(incoming) {
+  const out = {}
+  for (const [k, v] of Object.entries(incoming || {})) {
+    if (!v) continue
+    const key = String(k).toLowerCase()
+    // Drop hop-by-hop / origin-specific headers
+    if (
+      key === 'host' ||
+      key === 'connection' ||
+      key === 'content-length' ||
+      key === 'accept-encoding' ||
+      key === 'x-forwarded-for' ||
+      key === 'x-forwarded-host' ||
+      key === 'x-forwarded-proto'
+    ) {
+      continue
+    }
+    out[key] = Array.isArray(v) ? v.join(',') : String(v)
+  }
+  return out
+}
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
 }
 
 
