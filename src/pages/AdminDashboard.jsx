@@ -25,6 +25,7 @@ const FIELDS = [
 ]
 
 function AdminDashboard() {
+  const savedKey = getAdminKey()
   const [submissions, setSubmissions] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -41,7 +42,8 @@ function AdminDashboard() {
   const [selectedTextCount, setSelectedTextCount] = useState(0)
   const [fieldPositions, setFieldPositions] = useState({})
   const [contextOverride, setContextOverride] = useState({ country: '', language: '', invoice_type: '' })
-  const [needsKey, setNeedsKey] = useState(false)
+  // Default to locked unless we already have a key in localStorage (prevents “flash”/empty state)
+  const [needsKey, setNeedsKey] = useState(!savedKey)
   const [keyConfigured, setKeyConfigured] = useState(true)
   const [keyInput, setKeyInput] = useState('')
   const [keyBusy, setKeyBusy] = useState(false)

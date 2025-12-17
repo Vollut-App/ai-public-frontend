@@ -22,11 +22,13 @@ function JsonBlock({ data }) {
 }
 
 export default function ModelStats() {
+  const savedKey = getAdminKey()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [stats, setStats] = useState(null)
   const [showRaw, setShowRaw] = useState(false)
-  const [needsKey, setNeedsKey] = useState(false)
+  // Default to locked unless we already have a key in localStorage (prevents “flash” of stats UI)
+  const [needsKey, setNeedsKey] = useState(!savedKey)
   const [keyConfigured, setKeyConfigured] = useState(true)
   const [keyInput, setKeyInput] = useState('')
   const [keyBusy, setKeyBusy] = useState(false)
@@ -65,8 +67,8 @@ export default function ModelStats() {
       } catch {
         // ignore
       } finally {
-        // attempt load (will 401 if needed)
-        load()
+        // Only attempt load if we already have a key saved.
+        if (getAdminKey()) load()
       }
     })()
   }, [])
