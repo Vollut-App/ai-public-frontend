@@ -312,15 +312,6 @@ function AdminDashboard() {
     })
   }
 
-  if (loading) {
-    return (
-      <div className="empty-state">
-        <Loader2 className="spinner" style={{ width: 48, height: 48, margin: '0 auto' }} />
-        <p style={{ marginTop: '1rem' }}>Loading submissions...</p>
-      </div>
-    )
-  }
-
   if (needsKey) {
     return (
       <div className="card" style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -359,6 +350,15 @@ function AdminDashboard() {
             </div>
           ) : null}
         </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="empty-state">
+        <Loader2 className="spinner" style={{ width: 48, height: 48, margin: '0 auto' }} />
+        <p style={{ marginTop: '1rem' }}>Loading submissions...</p>
       </div>
     )
   }
