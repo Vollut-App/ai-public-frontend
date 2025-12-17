@@ -13,7 +13,12 @@
  */
 export default async function handler(req, res) {
   const backendOrigin = (process.env.BACKEND_ORIGIN || '').trim() || 'http://34.88.175.10:5002'
-  const proxySecret = (process.env.PROXY_SHARED_SECRET || '').trim()
+  const proxySecret = (
+    process.env.PROXY_SHARED_SECRET ||
+    process.env.PROXY_SECRET ||
+    process.env.X_PROXY_SECRET ||
+    ''
+  ).trim()
 
   // CORS
   const origin = req.headers?.origin || '*'
@@ -44,6 +49,7 @@ export default async function handler(req, res) {
 
   // Debug headers for easy inspection in Network tab
   res.setHeader('x-proxy-target', targetUrl.toString())
+  res.setHeader('x-proxy-secret-sent', proxySecret ? '1' : '0')
 
   // Guard against proxy loops
   try {
