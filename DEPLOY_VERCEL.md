@@ -4,7 +4,7 @@ This frontend is a Vite + React SPA. On Vercel:
 
 - Static app routes should rewrite to `index.html` (handled in `vercel.json`)
 - API calls from the browser go to `/api/...`
-- `/api/...` is implemented as a **Vercel Serverless Function** at `api/[...path].js` which proxies requests to the backend and can inject auth headers.
+- `/api/...` is implemented as a **Vercel Serverless Function** at `api/proxy.js` which proxies requests to the backend and can inject auth headers.
 
 ## Required Vercel Environment Variables
 
