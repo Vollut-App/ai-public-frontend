@@ -15,6 +15,20 @@ Set these in your Vercel project settings (Production + Preview if needed):
 - `PROXY_SHARED_SECRET`
   - The shared secret expected by the backend (forwarded as request header `X-Proxy-Secret`)
 
+## Critical Vercel project setting
+
+Make sure your Vercel project **Root Directory** is set to `ai-public-frontend/`.
+If it’s set to the repo root, Vercel won’t see `ai-public-frontend/api/*` as serverless functions and `/api/...` won’t hit your proxy.
+
+## Quick sanity checks
+
+After redeploy:
+
+- Open `/api/ping`
+  - Expected: `{"ok":true,...}` (proves Vercel functions are running)
+- Open `/api/v1/health`
+  - Expected: backend health JSON (proves proxy -> backend works)
+
 ## How the proxy maps paths
 
 Incoming:
