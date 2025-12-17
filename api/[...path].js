@@ -45,6 +45,8 @@ export default async function handler(req, res) {
   const headers = { ...req.headers };
   delete headers.host;
   delete headers["content-length"]; // let fetch compute it when possible
+  // Set in both canonical and lowercase forms (some runtimes normalize differently).
+  headers["X-Proxy-Secret"] = secret;
   headers["x-proxy-secret"] = secret;
 
   try {
@@ -58,6 +60,8 @@ export default async function handler(req, res) {
     });
 
     res.statusCode = upstream.status;
+    // Debug (safe): confirms the request went through Vercel proxy (does not leak secret).
+    res.setHeader("X-Proxy-Used", "1");
 
     // Copy response headers (skip some hop-by-hop headers)
     upstream.headers.forEach((value, key) => {
