@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { FileText, LayoutDashboard, Upload, BarChart3 } from 'lucide-react'
 import UserUpload from './pages/UserUpload'
 import AdminDashboard from './pages/AdminDashboard'
@@ -64,9 +64,9 @@ function AppShell() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppShell />
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
