@@ -1,17 +1,13 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "http://34.88.175.10:5002/$1",
-      "headers": {
-        "X-Proxy-Secret": "RjRiZItz+(g@SB+N9n4*/sobmDNT$w:e"
-      }
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}
-
-
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "http://34.88.175.10:5002/$1",
+        "headers": {
+          "X-Proxy-Secret": "PASTE_THE_SAME_SECRET_HERE"
+        }
+      },
+      { "handle": "filesystem" },
+      { "src": "/(.*)", "dest": "/index.html" }
+    ]
+  }
