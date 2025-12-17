@@ -5,6 +5,21 @@ export const config = {
 };
 
 export default async function handler(req, res) {
+  // Handle CORS preflight at the edge (prevents upstream 405 on OPTIONS).
+  if (req.method === "OPTIONS") {
+    const origin = req.headers.origin || "*";
+    res.statusCode = 200;
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      req.headers["access-control-request-headers"] || "content-type,x-admin-key"
+    );
+    res.end();
+    return;
+  }
+
   const vmIp = process.env.VM_IP;
   const secret = process.env.PROXY_SHARED_SECRET;
 
