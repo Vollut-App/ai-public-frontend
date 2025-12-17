@@ -13,6 +13,28 @@ export default async function handler(req, res) {
   const backendOrigin = (process.env.BACKEND_ORIGIN || '').trim() || 'http://34.88.175.10:5002'
   const proxySecret = (process.env.PROXY_SHARED_SECRET || '').trim()
 
+  // Guard against accidental proxy loops (e.g. BACKEND_ORIGIN set to this Vercel domain)
+  try {
+    const targetHost = new URL(backendOrigin).host
+    const incomingHost = (req.headers?.host || '').toString()
+    if (targetHost && incomingHost && targetHost === incomingHost) {
+      res.statusCode = 500
+      res.setHeader('content-type', 'application/json; charset=utf-8')
+      res.end(
+        JSON.stringify({
+          error: 'Proxy misconfiguration',
+          message:
+            'BACKEND_ORIGIN points to the same host as this Vercel deployment, causing a proxy loop. Set BACKEND_ORIGIN to your backend server (e.g. http://<ip>:5002).',
+          backend_origin: backendOrigin,
+          incoming_host: incomingHost,
+        })
+      )
+      return
+    }
+  } catch {
+    // ignore parse errors; fetch() will fail later with a clearer message
+  }
+
   // CORS (helps when browser treats proxy as cross-origin / does preflight)
   const origin = req.headers?.origin || '*'
   res.setHeader('access-control-allow-origin', origin)
