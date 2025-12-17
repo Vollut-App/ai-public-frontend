@@ -4,11 +4,13 @@ import { FileText, LayoutDashboard, Upload, BarChart3 } from 'lucide-react'
 import UserUpload from './pages/UserUpload'
 import AdminDashboard from './pages/AdminDashboard'
 import ModelStats from './pages/ModelStats'
+import { getAdminKey } from './utils/adminKey'
 
 function AppShell() {
   const location = useLocation()
   const pathname = location?.pathname || '/'
   const isPublicPage = pathname === '/'
+  const hasAdminKey = Boolean(getAdminKey())
 
   return (
     <div className="app">
@@ -21,7 +23,9 @@ function AppShell() {
             <span className="nav-brand-text">Invoice Extractor</span>
           </NavLink>
 
-          {!isPublicPage && (
+          {/* Only show navigation links when user already has an admin key stored.
+              This keeps Admin/Stats “hidden” until unlocked once. */}
+          {!isPublicPage && hasAdminKey && (
             <div className="nav-links">
               <NavLink
                 to="/"
