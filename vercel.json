@@ -1,6 +1,13 @@
 {
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
-}
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "http://34.88.175.10:5002/$1",
+        "headers": {
+          "X-Proxy-Secret": "RjRiZItz+(g@SB+N9n4*/sobmDNT$w:e"
+        }
+      },
+      { "handle": "filesystem" },
+      { "src": "/(.*)", "dest": "/index.html" }
+    ]
+  }
