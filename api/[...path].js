@@ -13,6 +13,23 @@ export default async function handler(req, res) {
   const backendOrigin = (process.env.BACKEND_ORIGIN || '').trim() || 'http://34.88.175.10:5002'
   const proxySecret = (process.env.PROXY_SHARED_SECRET || '').trim()
 
+  // CORS (helps when browser treats proxy as cross-origin / does preflight)
+  const origin = req.headers?.origin || '*'
+  res.setHeader('access-control-allow-origin', origin)
+  res.setHeader('vary', 'Origin')
+  res.setHeader('access-control-allow-methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+  res.setHeader(
+    'access-control-allow-headers',
+    (req.headers?.['access-control-request-headers'] || 'content-type, x-admin-key').toString()
+  )
+  res.setHeader('access-control-max-age', '86400')
+
+  if (String(req.method || '').toUpperCase() === 'OPTIONS') {
+    res.statusCode = 204
+    res.end()
+    return
+  }
+
   // req.url includes the full path starting with /api/...
   const incomingUrl = new URL(req.url, 'http://localhost')
   const forwardPath = incomingUrl.pathname.replace(/^\/api(?=\/|$)/, '') || '/'
